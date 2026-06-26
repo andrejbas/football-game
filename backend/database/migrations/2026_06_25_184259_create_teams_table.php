@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('teams', function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->string('name')->unique();
+            $table->foreignUlid('owner_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUlid('league_id')->nullable()->constrained('leagues')->nullOnDelete();
+            $table->unsignedInteger('wins')->default(0);
+            $table->unsignedInteger('losses')->default(0);
+            $table->unsignedInteger('draws')->default(0);
+            $table->unsignedInteger('goals_for')->default(0);
+            $table->unsignedInteger('goals_against')->default(0);
+            $table->unsignedInteger('points')->default(0);
+            $table->timestamps();
+
+            $table->index('owner_id');
+            $table->index('league_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('teams');
+    }
+};

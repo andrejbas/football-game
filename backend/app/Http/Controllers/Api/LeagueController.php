@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\LeagueResource;
+use App\Http\Resources\MatchResource;
+use App\Http\Resources\TeamResource;
+use App\Models\League;
+use App\Services\LeagueService;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Http\JsonResponse;
+
+class LeagueController extends Controller
+{
+    use ApiResponseTrait;
+
+    public function __construct(private readonly LeagueService $leagueService) {}
+
+    public function index(): JsonResponse
+    {
+        $leagues = League::withCount('teams')->paginate(20);
+
+        return $this->successResponse(LeagueResource::collection($leagues)->response()->getData(true));
+    }
+
+    public function show(League $league): JsonResponse
+    {
+        $league->load('teams');
+
+        return $this->successResponse(LeagueResource::make($league));
+    }
+
+    public function standings(League $league): JsonResponse
+    {
+        $standings = $this->leagueService->getStandings($league);
+
+        return $this->successResponse([
+            'league'    => LeagueResource::make($league),
+            'standings' => TeamResource::collection($standings),
+        ]);
+    }
+
+    public function schedule(League $league): JsonResponse
+    {
+        $matches = $league->matches()
+            ->with(['homeTeam', 'awayTeam'])
+            ->orderBy('game_day')
+            ->get()
+            ->groupBy('game_day');
+
+        return $this->successResponse([
+            'league'   => LeagueResource::make($league),
+            'schedule' => $matches->map(fn ($dayMatches, $day) => [
+                'game_day' => $day,
+                'matches'  => MatchResource::collection($dayMatches),
+            ])->values(),
+        ]);
+    }
+}
