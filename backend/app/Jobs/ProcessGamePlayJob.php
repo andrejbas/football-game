@@ -18,8 +18,6 @@ class ProcessGamePlayJob implements ShouldQueue
     public int $tries   = 3;
     public int $backoff = 5;
 
-    public ?string $queue = 'simulation';
-
     public function __construct(public readonly string $gamePlayId) {}
 
     public function handle(MatchSimulationService $service): void

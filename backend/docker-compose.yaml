@@ -13,6 +13,32 @@ services:
     networks:
       - football_net
 
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: football_queue
+    volumes:
+      - .:/var/www
+    command: php artisan queue:work --queue=default,simulation,rewards --sleep=1 --tries=1 --timeout=0
+    depends_on:
+      - db
+    networks:
+      - football_net
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: football_scheduler
+    volumes:
+      - .:/var/www
+    command: php artisan schedule:work
+    depends_on:
+      - db
+    networks:
+      - football_net
+
   db:
     image: postgres:16
     container_name: football_db

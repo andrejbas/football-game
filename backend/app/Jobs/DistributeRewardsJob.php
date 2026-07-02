@@ -18,8 +18,6 @@ class DistributeRewardsJob implements ShouldQueue
     public int $tries   = 5;
     public int $backoff = 30;
 
-    public ?string $queue = 'rewards';
-
     public function __construct(public readonly string $matchId) {}
 
     public function handle(RewardService $service): void

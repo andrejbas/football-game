@@ -17,9 +17,7 @@ use App\Models\FootballMatch;
 use App\Models\GamePlay;
 use App\Models\GamePlayContribution;
 use App\Models\Player;
-use App\Models\Team;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class MatchSimulationService
 {
@@ -71,7 +69,8 @@ class MatchSimulationService
             ->firstOrFail();
 
         ProcessGamePlayJob::dispatch($firstPhase->id)
-            ->delay(now()->addMinutes(3));
+            ->delay(now()->addMinutes(3))
+            ->onQueue('simulation');
     }
 
     public function simulateGamePlay(GamePlay $gamePlay): void

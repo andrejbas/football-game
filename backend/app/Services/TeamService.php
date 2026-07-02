@@ -10,6 +10,7 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TeamService
 {
@@ -22,7 +23,10 @@ class TeamService
             ]);
 
             // Owner automatically joins their team
-            $team->members()->attach($user->id, ['joined_at' => now()]);
+            $team->members()->attach($user->id, [
+                'id'        => (string) Str::ulid(),
+                'joined_at' => now(),
+            ]);
 
             // Associate player record
             if ($user->player) {
@@ -70,7 +74,10 @@ class TeamService
         }
 
         DB::transaction(function () use ($user, $team) {
-            $team->members()->attach($user->id, ['joined_at' => now()]);
+            $team->members()->attach($user->id, [
+                'id'        => (string) Str::ulid(),
+                'joined_at' => now(),
+            ]);
 
             if ($user->player) {
                 $user->player->update(['team_id' => $team->id]);

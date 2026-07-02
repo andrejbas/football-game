@@ -21,6 +21,20 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## Local Development
+
+This project is configured for PostgreSQL in Docker. If you see `could not find driver` when running Artisan commands on Windows, run the backend inside the provided container instead of the host PHP install:
+
+```bash
+docker compose up -d --build
+docker compose exec app php artisan migrate:fresh
+docker compose exec app php artisan serve --host=0.0.0.0 --port=8000
+```
+
+The Docker image already installs `pdo_pgsql`, so the database connection matches the repo's PostgreSQL setup.
+
+The compose setup also includes a queue worker and scheduler container. Those are required for match simulation, game-play phase progression, and season advancement jobs.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

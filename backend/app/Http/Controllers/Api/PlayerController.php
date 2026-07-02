@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\Game\InsufficientEnergyException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Player\TrainPlayerRequest;
 use App\Http\Requests\Player\UpdatePlayerRequest;
 use App\Http\Resources\PlayerResource;
 use App\Services\PlayerService;
@@ -35,6 +37,21 @@ class PlayerController extends Controller
         $player->update($request->validated());
 
         return $this->successResponse(PlayerResource::make($player->fresh()), 'Player updated.');
+    }
+
+    public function train(TrainPlayerRequest $request): JsonResponse
+    {
+        $player = $request->user()->player;
+
+        $this->authorize('update', $player);
+
+        try {
+            $this->playerService->train($player, $request->validated('energy_invested'));
+        } catch (InsufficientEnergyException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        }
+
+        return $this->successResponse(PlayerResource::make($player->fresh(['team', 'equippedItems'])), 'Training complete.');
     }
 
     public function energyStatus(Request $request): JsonResponse

@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('player')->group(function () {
         Route::get('/',        [PlayerController::class, 'show']);
         Route::patch('/',      [PlayerController::class, 'update']);
+        Route::post('/train',  [PlayerController::class, 'train']);
         Route::get('/energy',  [PlayerController::class, 'energyStatus']);
     });
 

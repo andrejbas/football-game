@@ -52,8 +52,7 @@ class Team extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
-                    ->withPivot('joined_at')
-                    ->withTimestamps();
+                    ->withPivot('joined_at');
     }
 
     public function players(): HasMany

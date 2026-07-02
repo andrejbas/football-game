@@ -19,8 +19,6 @@ class SimulateMatchJob implements ShouldQueue
     public int $tries   = 3;
     public int $backoff = 10;
 
-    public string $queue = 'simulation';
-
     public function __construct(public readonly string $matchId) {}
 
     public function handle(MatchSimulationService $service): void

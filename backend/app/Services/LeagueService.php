@@ -9,7 +9,6 @@ use App\Exceptions\Game\SeasonAlreadyActiveException;
 use App\Models\FootballMatch;
 use App\Models\League;
 use App\Models\SeasonHistory;
-use App\Models\Team;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -96,7 +95,7 @@ class LeagueService
         }
 
         // Persist
-        $now = now();
+        $baseScheduledAt = now()->startOfDay();
         foreach ($matchesRec as $fixture) {
             FootballMatch::create([
                 'league_id'    => $league->id,
@@ -104,7 +103,7 @@ class LeagueService
                 'away_team_id' => $fixture['away']->id,
                 'game_day'     => $fixture['day'],
                 'status'       => MatchStatus::Scheduled,
-                'scheduled_at' => $now,     // will be updated when game day advances
+                'scheduled_at' => $baseScheduledAt->copy()->addDays($fixture['day'] - 1),
             ]);
         }
     }
@@ -188,7 +187,9 @@ class LeagueService
         DB::transaction(function () use ($league) {
             // Wipe match data for this league
             $league->matches()->each(function (FootballMatch $match) {
-                $match->gamePlays()->each->delete();
+                $match->gamePlays()->get()->each(function ($gamePlay) {
+                    $gamePlay->delete();
+                });
                 $match->delete();
             });
 

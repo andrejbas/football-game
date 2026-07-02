@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\PlayerLevelUp;
+use App\Exceptions\Game\InsufficientEnergyException;
 use App\Models\Player;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,28 @@ class PlayerService
                 $this->levelUp($player);
                 $player->refresh();
             }
+        });
+    }
+
+    /**
+     * Spend energy on training and gain XP.
+     *
+     * Training follows the same energy-to-XP loop as other gameplay actions,
+     * but without involving a match.
+     *
+     * @throws InsufficientEnergyException
+     */
+    public function train(Player $player, int $energyInvested): void
+    {
+        if (! $player->hasEnoughEnergy($energyInvested)) {
+            throw new InsufficientEnergyException($energyInvested, $player->energy_current);
+        }
+
+        DB::transaction(function () use ($player, $energyInvested) {
+            $player->deductEnergy($energyInvested);
+
+            $xpGained = $energyInvested * 3;
+            $this->addXP($player, $xpGained);
         });
     }
 
