@@ -1,15 +1,16 @@
 import { Link } from 'react-router-dom'
 import useSWR from 'swr'
+import { LayoutDashboard, Dumbbell, Shield, Users, Trophy, ArrowRight, Zap } from 'lucide-react'
 import { playerApi } from '../api/player'
 import { useAuthStore } from '../store/authStore'
+import { crest } from '../lib/format'
 import { PageLoading, ErrorState, EmptyState } from '../components/States'
 import { StatCard, ProgressBar } from '../components/Widgets'
 
 export default function DashboardPage() {
   const { data: player, error: playerError } = useSWR('/player', playerApi.show)
   const isAdmin = useAuthStore((s) => s.isAdmin())
-  
-  // We can also fetch the team if player is on a team
+
   const teamId = player?.team?.id
   const teamName = player?.team?.name
   const energy = player?.energy?.current ?? 0
@@ -21,85 +22,106 @@ export default function DashboardPage() {
   if (!player) return <PageLoading label="Loading Dashboard..." />
 
   return (
-    <div className="container main-content animate-fade-in">
-      <h1 className="mb-6">Dashboard</h1>
+    <div className="animate-fade-in flex flex-col gap-6">
+      <div className="pitch-hero">
+        <div className="eyebrow flex items-center gap-2">
+          <LayoutDashboard size={14} />
+          Clubhouse
+        </div>
+        <h1 className="text-balance">Welcome back, {player.name || 'Manager'}</h1>
+        <p className="text-secondary text-base" style={{ maxWidth: 560 }}>
+          Track your footballer, train to level up, and step onto the pitch with your club.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Player Overview Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass-panel">
-          <h2 className="text-xl font-semibold mb-4 text-primary">Player Status</h2>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="section-head">
+            <span className="section-icon"><Zap size={18} /></span>
+            <h2>Player Status</h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-5">
             <StatCard label="Level" value={player.level} />
             <StatCard label="Attack" value={player.base_stats?.attack ?? 0} />
           </div>
+
           <div className="mb-4">
-            <div className="flex justify-between text-sm mb-1">
+            <div className="flex justify-between text-sm mb-2">
               <span className="text-muted">Energy</span>
-              <span>{energy} / {maxEnergy}</span>
+              <span className="font-medium">{energy} / {maxEnergy}</span>
             </div>
             <ProgressBar pct={player.energy?.pct ?? 0} variant="energy" />
           </div>
-          <div className="mb-4">
-            <div className="flex justify-between text-sm mb-1">
+          <div className="mb-5">
+            <div className="flex justify-between text-sm mb-2">
               <span className="text-muted">XP</span>
-              <span>{xpCurrent} / {xpToNextLevel}</span>
+              <span className="font-medium">{xpCurrent} / {xpToNextLevel}</span>
             </div>
             <ProgressBar pct={player.xp?.progress_pct ?? 0} variant="xp" />
           </div>
-          <Link to="/player" className="text-primary text-sm font-medium hover:underline">
-            View Full Profile &rarr;
+
+          <Link to="/player" className="btn btn-secondary btn-block">
+            View Full Profile
+            <ArrowRight size={16} />
           </Link>
         </div>
 
-        <div className="glass-panel flex flex-col justify-between gap-5">
+        <div className="glass-panel flex flex-col gap-5">
           <div>
-            <h2 className="text-xl font-semibold mb-4 text-primary">Quick Actions</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-slate-800/50 border border-white/5">
-                <div className="text-xs uppercase tracking-wide text-muted">Training</div>
-                <div className="mt-1 font-medium">Spend energy to gain XP</div>
-                <div className="text-sm text-muted mt-1">Energy available: {energy}</div>
-              </div>
-              <div className="p-3 rounded-lg bg-slate-800/50 border border-white/5">
-                <div className="text-xs uppercase tracking-wide text-muted">Club</div>
-                <div className="mt-1 font-medium">{teamId ? `Playing for ${teamName || 'a club'}` : 'No club yet'}</div>
-                <div className="text-sm text-muted mt-1">Roster, captaincy, and league access live in Teams.</div>
-              </div>
+            <div className="section-head">
+              <span className="section-icon"><Trophy size={18} /></span>
+              <h2>Your Club</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link to="/player" className="btn btn-primary">Train</Link>
-              <Link to="/equipment" className="btn btn-secondary">Equipment</Link>
-              <Link to="/teams" className="btn btn-secondary">Teams</Link>
-              <Link to="/leagues" className="btn btn-secondary">Leagues</Link>
-            </div>
-          </div>
 
-          <div>
-            <h3 className="text-sm uppercase tracking-wide text-muted mb-2">Current Team</h3>
             {teamId ? (
-              <>
-                <p className="mb-2">You are currently playing for {teamName || 'your team'}.</p>
-                <Link to={`/teams/${teamId}`} className="text-primary hover:underline">
-                  Go to Team Management &rarr;
+              <div className="data-row">
+                <div className="data-main">
+                  <span className="team-crest">{crest(teamName)}</span>
+                  <div>
+                    <div className="data-name">{teamName || 'Your club'}</div>
+                    <div className="text-sm text-muted">Active roster member</div>
+                  </div>
+                </div>
+                <Link to={`/teams/${teamId}`} className="btn btn-secondary btn-sm">
+                  Manage
+                  <ArrowRight size={14} />
                 </Link>
-              </>
+              </div>
             ) : (
               <EmptyState
-                title="No Team"
-                desc="You are currently a free agent. Join a team to participate in leagues!"
+                title="No Club Yet"
+                desc="You are currently a free agent. Join a team to compete in leagues!"
               />
             )}
           </div>
 
-          {!teamId ? (
-            <div className="mt-4">
-              <Link
-                to="/teams"
-                className="form-input text-center bg-primary text-white hover:bg-primary-hover inline-block w-full"
-                style={{ background: 'var(--primary)', color: 'white', border: 'none' }}
-              >
-                Browse Teams
+          <div>
+            <h3 className="text-sm uppercase tracking-wide text-muted mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <Link to="/player" className="btn btn-primary btn-block">
+                <Dumbbell size={16} />
+                Train
               </Link>
+              <Link to="/equipment" className="btn btn-secondary btn-block">
+                <Shield size={16} />
+                Equipment
+              </Link>
+              <Link to="/teams" className="btn btn-secondary btn-block">
+                <Users size={16} />
+                Teams
+              </Link>
+              <Link to="/leagues" className="btn btn-secondary btn-block">
+                <Trophy size={16} />
+                Leagues
+              </Link>
+            </div>
+          </div>
+
+          {isAdmin ? (
+            <div className="chip chip-accent" style={{ alignSelf: 'flex-start' }}>
+              <Shield size={13} />
+              Admin access enabled
             </div>
           ) : null}
         </div>

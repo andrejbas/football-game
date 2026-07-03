@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import useSWR from 'swr'
+import { Users, Shield, ArrowRight } from 'lucide-react'
 import { playerApi } from '../api/player'
 import { teamsApi } from '../api/teams'
-import { apiErrorMessage } from '../lib/format'
+import { apiErrorMessage, crest } from '../lib/format'
 import { PageLoading, ErrorState, EmptyState } from '../components/States'
 
 export default function TeamDetailPage() {
@@ -26,14 +27,12 @@ export default function TeamDetailPage() {
   const handleJoinLeave = async () => {
     setActionError('')
     setActionLoading(true)
-
     try {
       if (isCurrentTeam) {
         await teamsApi.leave(id)
       } else {
         await teamsApi.join(id)
       }
-
       await Promise.all([mutateTeam(), mutateMembers(), mutatePlayer()])
     } catch (err) {
       setActionError(apiErrorMessage(err, 'Unable to update team membership.'))
@@ -43,61 +42,80 @@ export default function TeamDetailPage() {
   }
 
   return (
-    <div className="container main-content animate-fade-in">
-      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
-        <div>
-          <h1 className="mb-2">{team.name}</h1>
-          <p className="text-muted mb-2">Roster: {memberCount} / 22</p>
-          {team.owner?.name ? <p className="text-muted text-sm">Captain: {team.owner.name}</p> : null}
-        </div>
-
-        {player ? (
-          <div className="flex flex-col gap-3 sm:items-end">
-            {actionError ? (
-              <div className="alert alert-error" role="alert">
-                {actionError}
+    <div className="animate-fade-in flex flex-col gap-6">
+      <div className="pitch-hero">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-center gap-4" style={{ minWidth: 0 }}>
+            <span className="team-crest" style={{ width: 56, height: 56, borderRadius: 16, fontSize: 20 }}>
+              {crest(team.name)}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div className="eyebrow flex items-center gap-2">
+                <Shield size={14} />
+                Club
               </div>
-            ) : null}
-
-            {!currentTeamId ? (
-              <button type="button" className="btn btn-primary" onClick={handleJoinLeave} disabled={actionLoading}>
-                {actionLoading ? 'Updating…' : 'Join Team'}
-              </button>
-            ) : isCurrentTeam ? (
-              <button type="button" className="btn btn-secondary" onClick={handleJoinLeave} disabled={actionLoading}>
-                {actionLoading ? 'Updating…' : 'Leave Team'}
-              </button>
-            ) : (
-              <div className="text-right text-sm text-muted max-w-xs">
-                <p>You are already registered with another team.</p>
-                <p>Leave your current club first, then join this one.</p>
-                {player.team?.id ? (
-                  <Link className="text-primary hover:underline" to={`/teams/${player.team.id}`}>
-                    Go to current team →
-                  </Link>
-                ) : null}
+              <h1 className="text-balance" style={{ marginBottom: 6 }}>{team.name}</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="chip chip-accent">{memberCount} / 22 players</span>
+                {team.owner?.name ? <span className="chip">Captain: {team.owner.name}</span> : null}
               </div>
-            )}
+            </div>
           </div>
-        ) : null}
+
+          {player ? (
+            <div className="flex flex-col gap-3 sm:items-end">
+              {!currentTeamId ? (
+                <button type="button" className="btn btn-primary" onClick={handleJoinLeave} disabled={actionLoading}>
+                  {actionLoading ? 'Updating…' : 'Join Team'}
+                </button>
+              ) : isCurrentTeam ? (
+                <button type="button" className="btn btn-secondary" onClick={handleJoinLeave} disabled={actionLoading}>
+                  {actionLoading ? 'Updating…' : 'Leave Team'}
+                </button>
+              ) : (
+                <div className="text-right text-sm text-muted" style={{ maxWidth: 260 }}>
+                  <p>You are already registered with another club. Leave it first, then join this one.</p>
+                  {player.team?.id ? (
+                    <Link className="auth-link" to={`/teams/${player.team.id}`}>
+                      Go to current team
+                      <ArrowRight size={13} style={{ display: 'inline', verticalAlign: '-2px', marginLeft: 4 }} />
+                    </Link>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      <div className="glass-panel mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-primary">Team Members</h2>
+      {actionError ? <div className="alert alert-error" role="alert">{actionError}</div> : null}
+
+      <div className="glass-panel">
+        <div className="section-head">
+          <span className="section-icon"><Users size={18} /></span>
+          <h2>Team Members</h2>
+        </div>
+
         {membersError ? (
           <ErrorState error="Failed to load members" />
         ) : !members ? (
-          <div>Loading members...</div>
+          <EmptyState title="Loading members…" desc="Fetching the current roster." />
+        ) : members.length === 0 ? (
+          <EmptyState title="No members yet" desc="This club has no players on the roster." />
         ) : (
-          <ul className="space-y-2">
+          <div className="data-list">
             {members.map((member) => (
-              <li key={member.id} className="p-3 bg-slate-800/50 rounded border border-white/5 flex justify-between">
-                <span>{member.user?.name || 'Player'}</span>
-                <span className="text-muted text-sm">Level: {member.level}</span>
-              </li>
+              <div key={member.id} className="data-row">
+                <div className="data-main">
+                  <span className="team-crest" style={{ width: 34, height: 34, fontSize: 13 }}>
+                    {crest(member.user?.name || 'P')}
+                  </span>
+                  <span className="data-name">{member.user?.name || 'Player'}</span>
+                </div>
+                <span className="chip">Level {member.level}</span>
+              </div>
             ))}
-            {members.length === 0 ? <EmptyState title="No members in this team." /> : null}
-          </ul>
+          </div>
         )}
       </div>
     </div>

@@ -1,5 +1,7 @@
 import useSWR from 'swr'
+import { History, CalendarDays } from 'lucide-react'
 import { seasonsApi } from '../api/seasons'
+import { formatDate, statusLabel, statusPillClass } from '../lib/format'
 import { PageLoading, ErrorState, EmptyState } from '../components/States'
 
 export default function SeasonsPage() {
@@ -10,40 +12,80 @@ export default function SeasonsPage() {
   if (!currentSeason && !history) return <PageLoading label="Loading Seasons..." />
 
   return (
-    <div className="container main-content animate-fade-in">
-      <h1 className="mb-6">Seasons Overview</h1>
-
-      <div className="glass-panel mb-8 border border-primary/30 relative overflow-hidden">
-        <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
-          CURRENT
+    <div className="animate-fade-in flex flex-col gap-6">
+      <div className="pitch-hero">
+        <div className="eyebrow flex items-center gap-2">
+          <History size={14} />
+          Campaign
         </div>
-        <h2 className="text-xl font-semibold mb-4 text-primary">Current Season</h2>
+        <h1 className="text-balance">Seasons</h1>
+        <p className="text-secondary text-base" style={{ maxWidth: 520 }}>
+          The current campaign and a record of every season that came before it.
+        </p>
+      </div>
+
+      <div className="glass-panel" style={{ borderColor: 'var(--border-bright)' }}>
+        <div className="section-head" style={{ justifyContent: 'space-between' }}>
+          <div className="flex items-center gap-3">
+            <span className="section-icon"><CalendarDays size={18} /></span>
+            <h2>Current Season</h2>
+          </div>
+          <span className="chip chip-accent">Live</span>
+        </div>
+
         {currentSeason ? (
-          <div>
-            <p className="mb-2"><span className="text-muted">Name:</span> {currentSeason.name}</p>
-            <p className="mb-2"><span className="text-muted">Start Date:</span> {new Date(currentSeason.start_date).toLocaleDateString()}</p>
-            <p><span className="text-muted">Status:</span> <span className="text-success font-medium capitalize">{currentSeason.status}</span></p>
+          <div className="info-grid">
+            <div className="info-item">
+              <div className="info-label">Name</div>
+              <div className="info-value">{currentSeason.name}</div>
+            </div>
+            <div className="info-item">
+              <div className="info-label">Start Date</div>
+              <div className="info-value">{formatDate(currentSeason.start_date)}</div>
+            </div>
+            <div className="info-item">
+              <div className="info-label">Status</div>
+              <div className="info-value">
+                <span className={`status-pill ${statusPillClass(currentSeason.status)}`}>
+                  {statusLabel(currentSeason.status)}
+                </span>
+              </div>
+            </div>
           </div>
         ) : (
           <p className="text-muted">No active season right now.</p>
         )}
       </div>
 
-      <h2 className="text-xl font-semibold mb-4">Past Seasons</h2>
-      {history && history.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {history.map(season => (
-            <div key={season.id} className="glass-panel text-sm text-muted">
-              <h3 className="text-base font-bold text-main mb-2">{season.name}</h3>
-              <p>Start: {new Date(season.start_date).toLocaleDateString()}</p>
-              <p>End: {season.end_date ? new Date(season.end_date).toLocaleDateString() : 'N/A'}</p>
-              <p className="mt-2 text-primary capitalize">{season.status}</p>
-            </div>
-          ))}
+      <div>
+        <div className="section-head">
+          <span className="section-icon"><History size={18} /></span>
+          <h2>Past Seasons</h2>
         </div>
-      ) : (
-        <EmptyState title="No History" desc="There are no past seasons recorded." />
-      )}
+
+        {history && history.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {history.map((season) => (
+              <div key={season.id} className="card">
+                <div className="card-body">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <h3 className="text-base font-bold text-main">{season.name}</h3>
+                    <span className={`status-pill ${statusPillClass(season.status)}`}>
+                      {statusLabel(season.status)}
+                    </span>
+                  </div>
+                  <div className="text-sm text-muted flex flex-col gap-1">
+                    <span>Start: {formatDate(season.start_date)}</span>
+                    <span>End: {season.end_date ? formatDate(season.end_date) : '—'}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No History" desc="There are no past seasons recorded." />
+        )}
+      </div>
     </div>
   )
 }

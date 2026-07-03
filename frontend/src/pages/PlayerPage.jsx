@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
+import { User, Dumbbell, Pencil, Zap } from 'lucide-react'
 import { playerApi } from '../api/player'
-import { apiErrorMessage } from '../lib/format'
+import { apiErrorMessage, crest } from '../lib/format'
 import { PageLoading, ErrorState } from '../components/States'
 import { StatCard, ProgressBar } from '../components/Widgets'
 
@@ -27,12 +28,10 @@ export default function PlayerPage() {
   const submitRename = async (event) => {
     event.preventDefault()
     const trimmedName = name.trim()
-
     if (!trimmedName) return
 
     setSaveError('')
     setSaving(true)
-
     try {
       await playerApi.update({ name: trimmedName })
       await mutate()
@@ -47,12 +46,10 @@ export default function PlayerPage() {
   const submitTraining = async (event) => {
     event.preventDefault()
     const invested = Number(trainingEnergy)
-
     if (!Number.isFinite(invested) || invested < 1) return
 
     setTrainingError('')
     setTrainingLoading(true)
-
     try {
       await playerApi.train({ energy_invested: invested })
       await mutate()
@@ -72,31 +69,39 @@ export default function PlayerPage() {
   const effectiveStats = player.effective_stats ?? baseStats
 
   return (
-    <div className="container main-content animate-fade-in">
-      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
-        <div>
-          <h1 className="mb-0">Player Profile</h1>
-          <p className="text-muted text-sm mt-1">Track your footballer, train, and grow into a stronger club asset.</p>
-        </div>
-        <button type="button" className="btn btn-primary" onClick={() => setEditOpen((open) => !open)}>
-          {editOpen ? 'Close' : 'Edit Name'}
-        </button>
-      </div>
-      
-      <div className="glass-panel mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-primary">{player.name || 'Player'}</h2>
-
-        {editOpen ? (
-          <form onSubmit={submitRename} className="mb-6 space-y-4">
-            {saveError ? (
-              <div className="alert alert-error" role="alert">
-                {saveError}
+    <div className="animate-fade-in flex flex-col gap-6">
+      <div className="pitch-hero">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-center gap-4" style={{ minWidth: 0 }}>
+            <span className="team-crest" style={{ width: 56, height: 56, borderRadius: 16, fontSize: 20 }}>
+              {crest(player.name)}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div className="eyebrow flex items-center gap-2">
+                <User size={14} />
+                Player Profile
               </div>
-            ) : null}
-            <div className="form-group mb-0">
-              <label className="form-label" htmlFor="player-name">
-                Player name
-              </label>
+              <h1 className="text-balance" style={{ marginBottom: 4 }}>{player.name || 'Player'}</h1>
+              <span className="chip chip-accent">Level {player.level}</span>
+            </div>
+          </div>
+          <button type="button" className="btn btn-secondary" onClick={() => setEditOpen((open) => !open)}>
+            <Pencil size={15} />
+            {editOpen ? 'Close' : 'Edit Name'}
+          </button>
+        </div>
+      </div>
+
+      {editOpen ? (
+        <div className="glass-panel">
+          <div className="section-head">
+            <span className="section-icon"><Pencil size={18} /></span>
+            <h2>Rename Player</h2>
+          </div>
+          {saveError ? <div className="alert alert-error mb-4" role="alert">{saveError}</div> : null}
+          <form onSubmit={submitRename} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="form-group flex-1 mb-0">
+              <label className="form-label" htmlFor="player-name">Player name</label>
               <input
                 id="player-name"
                 type="text"
@@ -111,7 +116,14 @@ export default function PlayerPage() {
               {saving ? 'Saving…' : 'Save changes'}
             </button>
           </form>
-        ) : null}
+        </div>
+      ) : null}
+
+      <div className="glass-panel">
+        <div className="section-head">
+          <span className="section-icon"><Zap size={18} /></span>
+          <h2>Attributes</h2>
+        </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard label="Level" value={player.level} />
@@ -120,52 +132,52 @@ export default function PlayerPage() {
           <StatCard label="Stamina" value={effectiveStats.stamina ?? baseStats.stamina ?? 0} />
         </div>
 
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <div>
-            <div className="flex justify-between text-sm mb-1">
+            <div className="flex justify-between text-sm mb-2">
               <span className="text-muted">Energy</span>
-              <span>{energy} / {maxEnergy}</span>
+              <span className="font-medium">{energy} / {maxEnergy}</span>
             </div>
             <ProgressBar pct={player.energy?.pct ?? 0} variant="energy" />
           </div>
-          <div className="mt-4">
-            <div className="flex justify-between text-sm mb-1">
+          <div>
+            <div className="flex justify-between text-sm mb-2">
               <span className="text-muted">Experience</span>
-              <span>{xpCurrent} / {xpToNextLevel} XP</span>
+              <span className="font-medium">{xpCurrent} / {xpToNextLevel} XP</span>
             </div>
             <ProgressBar pct={xpPct} variant="xp" />
           </div>
         </div>
+      </div>
 
-        <div className="mt-6 pt-6 border-t border-white/5">
-          <h3 className="text-lg font-semibold mb-3 text-primary">Training</h3>
-          {trainingError ? (
-            <div className="alert alert-error mb-4" role="alert">
-              {trainingError}
-            </div>
-          ) : null}
-          <form onSubmit={submitTraining} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-            <div className="form-group flex-1 mb-0">
-              <label className="form-label" htmlFor="training-energy">
-                Energy to spend
-              </label>
-              <input
-                id="training-energy"
-                type="number"
-                className="form-input"
-                min="1"
-                max={maxEnergy}
-                value={trainingEnergy}
-                onChange={(e) => setTrainingEnergy(e.target.value)}
-                required
-              />
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={trainingLoading}>
-              {trainingLoading ? 'Training…' : 'Train'}
-            </button>
-          </form>
-          <p className="text-muted text-sm mt-3">Training converts energy into XP and can trigger level-ups that improve your base stats.</p>
+      <div className="glass-panel">
+        <div className="section-head">
+          <span className="section-icon"><Dumbbell size={18} /></span>
+          <h2>Training Ground</h2>
         </div>
+        {trainingError ? <div className="alert alert-error mb-4" role="alert">{trainingError}</div> : null}
+        <form onSubmit={submitTraining} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="form-group flex-1 mb-0">
+            <label className="form-label" htmlFor="training-energy">Energy to spend</label>
+            <input
+              id="training-energy"
+              type="number"
+              className="form-input"
+              min="1"
+              max={maxEnergy}
+              value={trainingEnergy}
+              onChange={(e) => setTrainingEnergy(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={trainingLoading}>
+            <Dumbbell size={16} />
+            {trainingLoading ? 'Training…' : 'Train'}
+          </button>
+        </form>
+        <p className="text-muted text-sm mt-3">
+          Training converts energy into XP and can trigger level-ups that improve your base stats.
+        </p>
       </div>
     </div>
   )

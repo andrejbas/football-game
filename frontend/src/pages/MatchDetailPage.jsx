@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import useSWR from 'swr'
-import { gamePlaysApi } from '../api/matches'
+import { Swords, Flame, ListChecks, UserCheck } from 'lucide-react'
+import { gamePlaysApi, matchesApi } from '../api/matches'
 import { playerApi } from '../api/player'
-import { matchesApi } from '../api/matches'
-import { formatDateTime } from '../lib/format'
+import { formatDateTime, crest, statusPillClass } from '../lib/format'
 import { PageLoading, ErrorState, EmptyState } from '../components/States'
 
 export default function MatchDetailPage() {
@@ -19,7 +19,6 @@ export default function MatchDetailPage() {
   const activePlay = useMemo(() => plays?.find((play) => play.status === 'active') ?? null, [plays])
   const myContributions = useMemo(() => {
     if (!plays || !player) return []
-
     return plays.flatMap((play) =>
       (play.contributions ?? [])
         .filter((contribution) => contribution.player?.id === player.id)
@@ -36,20 +35,15 @@ export default function MatchDetailPage() {
 
   const handleEnergyChange = (playId) => (event) => {
     const value = event.target.value
-    setEnergyByPlay((current) => ({
-      ...current,
-      [playId]: value,
-    }))
+    setEnergyByPlay((current) => ({ ...current, [playId]: value }))
   }
 
   const handleContribute = async (playId) => {
     const invested = Number(energyByPlay[playId] ?? 0)
-
     if (!Number.isFinite(invested) || invested < 1) return
 
     setSubmitError('')
     setActivePlayId(playId)
-
     try {
       await gamePlaysApi.contribute(playId, invested)
       await Promise.all([mutateMatch(), mutatePlays(), mutatePlayer()])
@@ -61,36 +55,63 @@ export default function MatchDetailPage() {
   }
 
   const energyRemaining = player?.energy?.current ?? 0
+  const isDone = match.status === 'completed'
 
   return (
-    <div className="container main-content animate-fade-in">
-      <h1 className="mb-6 text-center">Match Center</h1>
-
-      <div className="glass-panel mb-8 text-center">
-        <div className="flex justify-between items-center text-xl md:text-3xl font-bold">
-          <div className="flex-1">{match.home_team?.name}</div>
-          <div className="px-6 text-primary">
-            {match.status === 'completed' ? `${match.score?.home ?? 0} - ${match.score?.away ?? 0}` : 'VS'}
-          </div>
-          <div className="flex-1">{match.away_team?.name}</div>
+    <div className="animate-fade-in flex flex-col gap-6">
+      <div className="pitch-hero">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <span className="eyebrow flex items-center gap-2">
+            <Swords size={14} />
+            Match Center
+          </span>
         </div>
-        <div className="text-muted mt-4 capitalize">Status: {match.status}</div>
-        <div className="text-muted text-sm mt-1">Scheduled: {formatDateTime(match.scheduled_at)}</div>
+
+        <div className="scoreboard">
+          <div className="side">
+            <span className="team-crest">{crest(match.home_team?.name)}</span>
+            <span className="club">{match.home_team?.name ?? 'TBD'}</span>
+          </div>
+          <div className="center">
+            {isDone ? (
+              <span className="board-score">
+                {match.score?.home ?? 0}<span className="text-muted"> : </span>{match.score?.away ?? 0}
+              </span>
+            ) : (
+              <span className="board-vs">VS</span>
+            )}
+            <span className={`status-pill ${statusPillClass(match.status)}`}>{match.status}</span>
+          </div>
+          <div className="side">
+            <span className="team-crest">{crest(match.away_team?.name)}</span>
+            <span className="club">{match.away_team?.name ?? 'TBD'}</span>
+          </div>
+        </div>
+
+        <div className="text-center text-sm text-muted mt-4">Kickoff: {formatDateTime(match.scheduled_at)}</div>
       </div>
 
-      {submitError ? <div className="alert alert-error mb-6" role="alert">{submitError}</div> : null}
+      {submitError ? <div className="alert alert-error" role="alert">{submitError}</div> : null}
 
-      <div className="glass-panel mb-8">
-        <h2 className="text-xl font-semibold mb-4 text-primary">Contribute to Active Play</h2>
+      <div className="glass-panel">
+        <div className="section-head">
+          <span className="section-icon"><Flame size={18} /></span>
+          <h2>Active Play</h2>
+        </div>
         {activePlay ? (
-          <div className="contribute-form space-y-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="font-semibold">Phase {activePlay.phase_number}</div>
-                <div className="text-sm text-muted capitalize">Status: {activePlay.status}</div>
+          <div className="flex flex-col gap-4">
+            <div className="info-grid">
+              <div className="info-item">
+                <div className="info-label">Phase</div>
+                <div className="info-value">{activePlay.phase_number}</div>
               </div>
-              <div className="text-sm text-muted">
-                Points: {activePlay.points?.home ?? 0} - {activePlay.points?.away ?? 0}
+              <div className="info-item">
+                <div className="info-label">Status</div>
+                <div className="info-value capitalize">{activePlay.status}</div>
+              </div>
+              <div className="info-item">
+                <div className="info-label">Points (H / A)</div>
+                <div className="info-value">{activePlay.points?.home ?? 0} - {activePlay.points?.away ?? 0}</div>
               </div>
             </div>
 
@@ -102,9 +123,7 @@ export default function MatchDetailPage() {
               }}
             >
               <div className="form-group flex-1 mb-0">
-                <label className="form-label" htmlFor={`energy-${activePlay.id}`}>
-                  Energy to invest
-                </label>
+                <label className="form-label" htmlFor={`energy-${activePlay.id}`}>Energy to invest</label>
                 <input
                   id={`energy-${activePlay.id}`}
                   type="number"
@@ -117,10 +136,10 @@ export default function MatchDetailPage() {
                 />
               </div>
               <button type="submit" className="btn btn-primary" disabled={activePlayId === activePlay.id}>
-                {activePlayId === activePlay.id ? 'Submitting…' : 'Contribute Energy'}
+                <Flame size={16} />
+                {activePlayId === activePlay.id ? 'Submitting…' : 'Contribute'}
               </button>
             </form>
-
             <p className="text-sm text-muted">
               Available energy: {energyRemaining}. Your team must be part of this match to contribute.
             </p>
@@ -134,72 +153,72 @@ export default function MatchDetailPage() {
       </div>
 
       <div className="glass-panel">
-        <h2 className="text-xl font-semibold mb-4 text-primary">Game Plays</h2>
+        <div className="section-head">
+          <span className="section-icon"><ListChecks size={18} /></span>
+          <h2>Game Plays</h2>
+        </div>
         {playsError ? (
           <ErrorState error="Failed to load game plays" />
         ) : !plays ? (
-          <div>Loading plays...</div>
+          <EmptyState title="Loading plays…" desc="Fetching the match timeline." />
+        ) : plays.length === 0 ? (
+          <EmptyState title="No game plays yet" desc="No game plays have been recorded for this match." />
         ) : (
-          <ul className="space-y-3">
+          <div className="data-list">
             {plays.map((play) => (
-              <li key={play.id} className="p-4 bg-slate-800/50 rounded border border-white/5 flex flex-col gap-3">
-                <div>
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <span className="font-semibold text-primary">Phase {play.phase_number}</span>
-                      <span className="text-muted ml-2 text-sm capitalize">Status: {play.status}</span>
-                    </div>
-                    <div className="text-sm text-muted">
-                      Winner: {play.winner_side || 'pending'}
-                    </div>
+              <div key={play.id} className="data-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="chip chip-accent">Phase {play.phase_number}</span>
+                    <span className="chip capitalize">{play.status}</span>
                   </div>
+                  <span className="text-sm text-muted">Winner: {play.winner_side || 'pending'}</span>
                 </div>
                 <div className="text-sm">
-                  Team points: Home {play.points?.home ?? 0} | Away {play.points?.away ?? 0}
-                </div>
-                <div className="text-sm text-muted">
-                  Contributions: {play.contributions?.length ?? 0}
+                  Team points — Home <strong>{play.points?.home ?? 0}</strong> · Away <strong>{play.points?.away ?? 0}</strong>
                 </div>
                 {play.contributions?.length ? (
-                  <ul className="space-y-2 text-sm">
+                  <div className="data-list">
                     {play.contributions.map((contribution) => (
-                      <li key={contribution.id} className="p-3 rounded bg-black/20 border border-white/5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <div key={contribution.id} className="flex items-center justify-between gap-2 text-sm" style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
                         <span>
-                          {contribution.player?.name || contribution.player?.user?.name || 'Unknown'} invested {contribution.energy_invested} energy
+                          {contribution.player?.name || contribution.player?.user?.name || 'Unknown'} · {contribution.energy_invested} energy
                         </span>
-                        <span className="text-muted">+{contribution.points_contributed} points</span>
-                      </li>
+                        <span className="text-success">+{contribution.points_contributed} pts</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 ) : (
                   <div className="text-sm text-muted">No contributions recorded yet.</div>
                 )}
                 <div className="text-xs text-muted">
-                  Started: {formatDateTime(play.started_at)} | Finished: {formatDateTime(play.finished_at)}
+                  Started {formatDateTime(play.started_at)} · Finished {formatDateTime(play.finished_at)}
                 </div>
-              </li>
+              </div>
             ))}
-            {plays.length === 0 && <div className="text-muted">No game plays recorded yet.</div>}
-          </ul>
+          </div>
         )}
       </div>
 
-      <div className="glass-panel mt-8">
-        <h2 className="text-xl font-semibold mb-4 text-primary">My Contributions</h2>
+      <div className="glass-panel">
+        <div className="section-head">
+          <span className="section-icon"><UserCheck size={18} /></span>
+          <h2>My Contributions</h2>
+        </div>
         {myContributions.length ? (
-          <ul className="space-y-3">
+          <div className="data-list">
             {myContributions.map((contribution) => (
-              <li key={contribution.id} className="p-4 bg-slate-800/50 rounded border border-white/5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="font-semibold">Phase {contribution.phase_number}</div>
-                  <div className="text-sm text-muted capitalize">Winner: {contribution.winner_side || 'pending'}</div>
+              <div key={contribution.id} className="data-row">
+                <div className="data-main">
+                  <span className="chip chip-accent">Phase {contribution.phase_number}</span>
+                  <span className="text-sm text-muted">Winner: {contribution.winner_side || 'pending'}</span>
                 </div>
-                <div className="text-sm text-muted">
-                  Invested {contribution.energy_invested} energy for +{contribution.points_contributed} points
-                </div>
-              </li>
+                <span className="text-sm">
+                  {contribution.energy_invested} energy · <span className="text-success">+{contribution.points_contributed} pts</span>
+                </span>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
           <EmptyState
             title="No contributions yet"

@@ -43,6 +43,23 @@ export function statusLabel(status) {
     .join(' ')
 }
 
+/* Build a short 2-3 letter crest label from a team/club name */
+export function crest(name = '') {
+  const words = String(name).trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return '?'
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase()
+  return words.slice(0, 3).map((w) => w[0]).join('').toUpperCase()
+}
+
+/* Map a free-form status string to a .status-pill modifier class */
+export function statusPillClass(status = '') {
+  const s = String(status).toLowerCase()
+  if (['live', 'in_progress', 'playing'].includes(s)) return 'status-live'
+  if (['active', 'ongoing', 'started', 'open'].includes(s)) return 'status-active'
+  if (['finished', 'completed', 'ended', 'closed'].includes(s)) return 'status-done'
+  return 'status-idle'
+}
+
 export function apiErrorMessage(err, fallback = 'Something went wrong.') {
   const res = err?.response?.data
   if (res?.errors) {

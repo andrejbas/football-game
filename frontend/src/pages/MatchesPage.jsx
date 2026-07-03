@@ -1,7 +1,8 @@
 import useSWR from 'swr'
 import { Link } from 'react-router-dom'
+import { Swords, ArrowRight } from 'lucide-react'
 import { matchesApi } from '../api/matches'
-import { formatDateTime } from '../lib/format'
+import { formatDateTime, crest, statusPillClass } from '../lib/format'
 import { PageLoading, ErrorState, EmptyState } from '../components/States'
 
 export default function MatchesPage() {
@@ -11,32 +12,61 @@ export default function MatchesPage() {
   if (!matchesPage) return <PageLoading label="Loading Matches..." />
 
   const matches = matchesPage.data || matchesPage
+  const isDone = (m) => m.status === 'completed'
 
   return (
-    <div className="container main-content animate-fade-in">
-      <h1 className="mb-6">Matches</h1>
+    <div className="animate-fade-in flex flex-col gap-6">
+      <div className="pitch-hero">
+        <div className="eyebrow flex items-center gap-2">
+          <Swords size={14} />
+          Fixtures
+        </div>
+        <h1 className="text-balance">Matches</h1>
+        <p className="text-secondary text-base" style={{ maxWidth: 520 }}>
+          Every fixture across the league. Jump into the match center to contribute energy to live plays.
+        </p>
+      </div>
 
       {matches.length === 0 ? (
         <EmptyState title="No Matches" desc="There are no matches scheduled or played." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {matches.map(match => (
-            <div key={match.id} className="glass-panel flex flex-col justify-between items-center text-center">
-              <div className="w-full flex justify-between items-center mb-4">
-                <div className="flex-1 font-bold text-lg">{match.home_team?.name}</div>
-                <div className="px-4 text-2xl font-black text-primary">
-                  {match.status === 'completed' ? `${match.score?.home ?? 0} - ${match.score?.away ?? 0}` : 'VS'}
-                </div>
-                <div className="flex-1 font-bold text-lg">{match.away_team?.name}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {matches.map((match) => (
+            <Link key={match.id} to={`/matches/${match.id}`} className="glass-panel" style={{ display: 'block' }}>
+              <div className="gameday-header">
+                <span className="gameday-badge">Game Day {match.game_day}</span>
+                <span className="gameday-line" />
+                <span className={`status-pill ${statusPillClass(match.status)}`}>{match.status}</span>
               </div>
-              <p className="text-sm text-muted mb-1">Game Day {match.game_day}</p>
-              <p className="text-sm text-muted mb-4">
-                Status: <span className="capitalize">{match.status}</span> | {formatDateTime(match.scheduled_at)}
-              </p>
-              <Link to={`/matches/${match.id}`} className="text-primary hover:underline text-sm font-medium">
-                Match Center &rarr;
-              </Link>
-            </div>
+
+              <div className="fixture" style={{ border: 'none', background: 'transparent', padding: 0 }}>
+                <div className="side home">
+                  <span className="team-name">{match.home_team?.name ?? 'TBD'}</span>
+                  <span className="team-crest">{crest(match.home_team?.name)}</span>
+                </div>
+                <div className="center">
+                  {isDone(match) ? (
+                    <span className="score">
+                      {match.score?.home ?? 0} <span className="text-muted">:</span> {match.score?.away ?? 0}
+                    </span>
+                  ) : (
+                    <span className="vs">VS</span>
+                  )}
+                </div>
+                <div className="side away">
+                  <span className="team-crest">{crest(match.away_team?.name)}</span>
+                  <span className="team-name">{match.away_team?.name ?? 'TBD'}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+                <span className="text-sm text-muted">{formatDateTime(match.scheduled_at)}</span>
+                <span className="auth-link text-sm font-medium">
+                  Match Center
+                  <ArrowRight size={14} style={{ display: 'inline', verticalAlign: '-2px', marginLeft: 4 }} />
+                </span>
+              </div>
+            </Link>
           ))}
         </div>
       )}

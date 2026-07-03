@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import { Link, useNavigate } from 'react-router-dom'
+import { Users, Plus, ArrowRight } from 'lucide-react'
 import { teamsApi } from '../api/teams'
-import { apiErrorMessage } from '../lib/format'
+import { apiErrorMessage, crest } from '../lib/format'
 import { PageLoading, ErrorState, EmptyState } from '../components/States'
 
 export default function TeamsPage() {
@@ -21,12 +22,10 @@ export default function TeamsPage() {
   const submitCreateTeam = async (event) => {
     event.preventDefault()
     const trimmedName = name.trim()
-
     if (!trimmedName) return
 
     setCreateError('')
     setCreating(true)
-
     try {
       const team = await teamsApi.create({ name: trimmedName })
       setName('')
@@ -41,30 +40,36 @@ export default function TeamsPage() {
   }
 
   return (
-    <div className="container main-content animate-fade-in">
-      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
-        <div>
-          <h1 className="mb-0">Teams</h1>
-          <p className="text-muted text-sm mt-1">Create a club or join one to start building a roster.</p>
+    <div className="animate-fade-in flex flex-col gap-6">
+      <div className="pitch-hero">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="eyebrow flex items-center gap-2">
+              <Users size={14} />
+              Clubs
+            </div>
+            <h1 className="text-balance">Teams</h1>
+            <p className="text-secondary text-base" style={{ maxWidth: 520 }}>
+              Create a club or join an existing one to start building your roster.
+            </p>
+          </div>
+          <button type="button" className="btn btn-primary" onClick={() => setIsCreating((open) => !open)}>
+            <Plus size={16} />
+            {isCreating ? 'Cancel' : 'Create Team'}
+          </button>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setIsCreating((open) => !open)}>
-          {isCreating ? 'Cancel' : 'Create Team'}
-        </button>
       </div>
 
       {isCreating ? (
-        <div className="glass-panel mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-primary">Create a new club</h2>
-          {createError ? (
-            <div className="alert alert-error mb-4" role="alert">
-              {createError}
-            </div>
-          ) : null}
+        <div className="glass-panel">
+          <div className="section-head">
+            <span className="section-icon"><Plus size={18} /></span>
+            <h2>Create a new club</h2>
+          </div>
+          {createError ? <div className="alert alert-error mb-4" role="alert">{createError}</div> : null}
           <form onSubmit={submitCreateTeam} className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="form-group flex-1 mb-0">
-              <label className="form-label" htmlFor="team-name">
-                Team name
-              </label>
+              <label className="form-label" htmlFor="team-name">Team name</label>
               <input
                 id="team-name"
                 type="text"
@@ -87,17 +92,30 @@ export default function TeamsPage() {
         <EmptyState title="No Teams Found" desc="There are no teams available yet." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teams.map((team) => (
-            <div key={team.id} className="glass-panel flex flex-col justify-between">
-              <div>
-                <h3 className="text-lg font-bold mb-2">{team.name}</h3>
-                <p className="text-muted text-sm mb-4">Roster: {team.roster_count ?? team.players?.length ?? 0} / 22</p>
+          {teams.map((team) => {
+            const roster = team.roster_count ?? team.players?.length ?? 0
+            return (
+              <div key={team.id} className="card flex flex-col justify-between">
+                <div className="card-body">
+                  <div className="flex items-center gap-3 mb-4" style={{ minWidth: 0 }}>
+                    <span className="team-crest" style={{ width: 44, height: 44, borderRadius: 12, fontSize: 16 }}>
+                      {crest(team.name)}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <h3 className="text-lg font-bold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {team.name}
+                      </h3>
+                      <div className="text-sm text-muted">Roster {roster} / 22</div>
+                    </div>
+                  </div>
+                  <Link to={`/teams/${team.id}`} className="btn btn-secondary btn-block">
+                    View Details
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
               </div>
-              <Link to={`/teams/${team.id}`} className="text-primary hover:underline text-sm font-medium">
-                View Details &rarr;
-              </Link>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
