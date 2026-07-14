@@ -5,6 +5,7 @@ import { equipmentApi } from '../api/equipment'
 import { apiErrorMessage } from '../lib/format'
 import { PageLoading, ErrorState, EmptyState } from '../components/States'
 import { RarityBadge } from '../components/Widgets'
+import { toast } from '../store/toastStore'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -138,8 +139,11 @@ export default function EquipmentPage() {
       setJustEquippedSlot(slotKey(item))
       await mutate()
       globalMutate('/player')
+      toast.success('Equipped', `${item.name} is now in your loadout.`)
     } catch (err) {
-      setActionError(apiErrorMessage(err, 'Unable to equip item.'))
+      const msg = apiErrorMessage(err, 'Unable to equip item.')
+      setActionError(msg)
+      toast.error('Could not equip', msg)
     } finally {
       setLoadingId(null)
     }
@@ -152,8 +156,11 @@ export default function EquipmentPage() {
       await equipmentApi.unequip(item.id)
       await mutate()
       globalMutate('/player')
+      toast.info('Unequipped', `${item.name} moved back to inventory.`)
     } catch (err) {
-      setActionError(apiErrorMessage(err, 'Unable to unequip item.'))
+      const msg = apiErrorMessage(err, 'Unable to unequip item.')
+      setActionError(msg)
+      toast.error('Could not unequip', msg)
     } finally {
       setLoadingId(null)
     }
@@ -264,17 +271,15 @@ export default function EquipmentPage() {
       setShowFlash(true)
       setMergeResult(result)
       setMergeSelection([])
-      setMergeMessage({
-        type: 'success',
-        text: `Forge complete! Created ${result.name} (${rarityKey(result)})`,
-      })
+      const successMsg = `Forge complete! Created ${result.name} (${rarityKey(result)})`
+      setMergeMessage({ type: 'success', text: successMsg })
+      toast.success('Forge complete!', `${result.name} — ${rarityKey(result)} tier crafted.`)
       await mutate()
       globalMutate('/player')
     } catch (err) {
-      setMergeMessage({
-        type: 'error',
-        text: apiErrorMessage(err, 'Merge failed.'),
-      })
+      const msg = apiErrorMessage(err, 'Merge failed.')
+      setMergeMessage({ type: 'error', text: msg })
+      toast.error('Forge failed', msg)
     } finally {
       setIsMerging(false)
     }

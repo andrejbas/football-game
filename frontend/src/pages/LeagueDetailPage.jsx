@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import useSWR from 'swr'
 import { CalendarDays, ListOrdered, Trophy, Target } from 'lucide-react'
 import { leaguesApi } from '../api/leagues'
@@ -75,8 +75,16 @@ function StandingsTab({ id }) {
                     </td>
                     <td className="team-cell">
                       <div className="flex items-center gap-3">
-                        <span className="team-crest">{crest(row.name)}</span>
-                        <span className="font-medium">{row.name ?? 'Unknown'}</span>
+                        <span className="team-crest">
+                          {crest(row.name)}
+                        </span>
+
+                        <Link
+                          to={`/teams/${row.id}`}
+                          className="font-medium hover:text-accent transition"
+                        >
+                          {row.name ?? 'Unknown'}
+                        </Link>
                       </div>
                     </td>
                     <td>{played}</td>
@@ -155,7 +163,10 @@ function ScheduleTab({ id }) {
 }
 
 function TopScorersTab({ id }) {
-  const { data, error } = useSWR(`/leagues/${id}/top-scorers`, () => leaguesApi.topScorers(id))
+  const { data, error } = useSWR(
+    `/leagues/${id}/top-scorers`,
+    () => leaguesApi.topScorers(id)
+  )
 
   if (error) return <ErrorState error="Failed to load top scorers" />
   if (!data) return <PageLoading label="Loading top scorers..." />
@@ -170,21 +181,73 @@ function TopScorersTab({ id }) {
       </div>
 
       {rows.length === 0 ? (
-        <EmptyState title="No goals yet" desc="Goalscorers appear once matches have been played." />
+        <EmptyState
+          title="No goals yet"
+          desc="Goalscorers appear once matches have been played."
+        />
       ) : (
         <div className="data-list">
           {rows.map((row, idx) => (
-            <div key={row.id ?? idx} className="data-row">
-              <div className="data-main">
-                <span className={`pos-badge rank-${idx + 1}`}>{idx + 1}</span>
-                <span className="team-crest">{crest(row.name)}</span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="data-name">{row.name}</div>
-                  <div className="text-sm text-muted">{row.team?.name ?? 'Free agent'}</div>
+            row.id ? (
+              <Link
+                key={row.id}
+                to={`/players/${row.id}`}
+                className="data-row hover:bg-white/5 transition"
+              >
+                <div className="data-main">
+                  <span className={`pos-badge rank-${idx + 1}`}>
+                    {idx + 1}
+                  </span>
+
+                  <span className="team-crest">
+                    {crest(row.name)}
+                  </span>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div className="data-name">
+                      {row.name}
+                    </div>
+
+                    <div className="text-sm text-muted">
+                      {row.team?.name ?? 'Free agent'}
+                    </div>
+                  </div>
                 </div>
+
+                <span className="chip chip-accent">
+                  ⚽ {row.goals_scored ?? 0}
+                </span>
+              </Link>
+            ) : (
+              <div
+                key={idx}
+                className="data-row"
+              >
+                <div className="data-main">
+                  <span className={`pos-badge rank-${idx + 1}`}>
+                    {idx + 1}
+                  </span>
+
+                  <span className="team-crest">
+                    {crest(row.name)}
+                  </span>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div className="data-name">
+                      {row.name}
+                    </div>
+
+                    <div className="text-sm text-muted">
+                      {row.team?.name ?? 'Free agent'}
+                    </div>
+                  </div>
+                </div>
+
+                <span className="chip chip-accent">
+                  ⚽ {row.goals_scored ?? 0}
+                </span>
               </div>
-              <span className="chip chip-accent">⚽ {row.goals_scored ?? 0}</span>
-            </div>
+            )
           ))}
         </div>
       )}

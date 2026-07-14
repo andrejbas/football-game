@@ -48,6 +48,7 @@ class PlayerResource extends JsonResource
             'team'          => TeamResource::make($this->whenLoaded('team')),
             'equipped_items'=> EquipmentResource::collection($this->whenLoaded('equippedItems')),
             'created_at'    => $this->created_at,
+            'goals_scored'    => $this->goals_scored
         ];
     }
 }

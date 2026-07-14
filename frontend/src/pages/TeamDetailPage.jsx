@@ -105,18 +105,34 @@ export default function TeamDetailPage() {
         ) : (
           <div className="data-list">
             {members.map((member) => (
-              <div key={member.id} className="data-row">
+              <Link
+                key={member.id}
+                to={`/players/${member.id}`}
+                className="data-row hover:bg-white/5 transition"
+              >
                 <div className="data-main">
-                  <span className="team-crest" style={{ width: 34, height: 34, fontSize: 13 }}>
+                  <span 
+                    className="team-crest" 
+                    style={{ width: 34, height: 34, fontSize: 13 }}
+                  >
                     {crest(member.name || 'P')}
                   </span>
-                  <span className="data-name">{member.name || 'Player'}</span>
+
+                  <span className="data-name">
+                    {member.name || 'Player'}
+                  </span>
                 </div>
+
                 <div className="flex items-center gap-2">
-                  <span className="chip chip-accent">⚽ {member.goals_scored ?? 0}</span>
-                  <span className="chip">Level {member.level}</span>
+                  <span className="chip chip-accent">
+                    ⚽ {member.goals_scored ?? 0}
+                  </span>
+
+                  <span className="chip">
+                    Level {member.level}
+                  </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

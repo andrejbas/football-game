@@ -1,24 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import useSWR from 'swr'
 import { User, Dumbbell, Pencil, Zap } from 'lucide-react'
 import { playerApi } from '../api/player'
 import { apiErrorMessage, crest } from '../lib/format'
 import { PageLoading, ErrorState } from '../components/States'
-import { StatCard, ProgressBar } from '../components/Widgets'
+import { StatCard, ProgressBar, RadarChart } from '../components/Widgets'
+import LevelUpOverlay from '../components/LevelUp'
+import { toast } from '../store/toastStore'
 
 export default function PlayerPage() {
   const { data: player, error, mutate } = useSWR('/player', playerApi.show)
   const [name, setName] = useState('')
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState('')
   const [trainingEnergy, setTrainingEnergy] = useState(10)
-  const [trainingError, setTrainingError] = useState('')
   const [trainingLoading, setTrainingLoading] = useState(false)
+  const [levelUpLevel, setLevelUpLevel] = useState(null)
+  const prevLevelRef = useRef(null)
 
   useEffect(() => {
     if (player) {
       setName(player.name || '')
+      // Detect level-up by comparing to previous level
+      if (prevLevelRef.current !== null && player.level > prevLevelRef.current) {
+        setLevelUpLevel(player.level)
+      }
+      prevLevelRef.current = player.level
     }
   }, [player])
 
@@ -29,15 +36,14 @@ export default function PlayerPage() {
     event.preventDefault()
     const trimmedName = name.trim()
     if (!trimmedName) return
-
-    setSaveError('')
     setSaving(true)
     try {
       await playerApi.update({ name: trimmedName })
       await mutate()
       setEditOpen(false)
+      toast.success('Name updated', `Your player is now known as ${trimmedName}.`)
     } catch (err) {
-      setSaveError(apiErrorMessage(err, 'Unable to update player.'))
+      toast.error('Could not rename', apiErrorMessage(err, 'Unable to update player.'))
     } finally {
       setSaving(false)
     }
@@ -47,14 +53,13 @@ export default function PlayerPage() {
     event.preventDefault()
     const invested = Number(trainingEnergy)
     if (!Number.isFinite(invested) || invested < 1) return
-
-    setTrainingError('')
     setTrainingLoading(true)
     try {
       await playerApi.train({ energy_invested: invested })
       await mutate()
+      toast.success('Training complete', `${invested} energy spent — XP gained!`)
     } catch (err) {
-      setTrainingError(apiErrorMessage(err, 'Unable to train right now.'))
+      toast.error('Training failed', apiErrorMessage(err, 'Unable to train right now.'))
     } finally {
       setTrainingLoading(false)
     }
@@ -69,116 +74,141 @@ export default function PlayerPage() {
   const effectiveStats = player.effective_stats ?? baseStats
 
   return (
-    <div className="animate-fade-in flex flex-col gap-6">
-      <div className="pitch-hero">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-center gap-4" style={{ minWidth: 0 }}>
-            <span className="team-crest" style={{ width: 56, height: 56, borderRadius: 16, fontSize: 20 }}>
-              {crest(player.name)}
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div className="eyebrow flex items-center gap-2">
-                <User size={14} />
-                Player Profile
-              </div>
-              <h1 className="text-balance" style={{ marginBottom: 4 }}>{player.name || 'Player'}</h1>
-              <span className="chip chip-accent">Level {player.level}</span>
-            </div>
-          </div>
-          <button type="button" className="btn btn-secondary" onClick={() => setEditOpen((open) => !open)}>
-            <Pencil size={15} />
-            {editOpen ? 'Close' : 'Edit Name'}
-          </button>
-        </div>
-      </div>
+    <>
+      {levelUpLevel !== null && (
+        <LevelUpOverlay level={levelUpLevel} onClose={() => setLevelUpLevel(null)} />
+      )}
 
-      {editOpen ? (
+      <div className="animate-fade-in flex flex-col gap-6">
+        {/* ─── Hero ─────────────────────────────────────────────────────────── */}
+        <div className="pitch-hero">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-center gap-4" style={{ minWidth: 0 }}>
+              <span className="team-crest" style={{ width: 56, height: 56, borderRadius: 16, fontSize: 20 }}>
+                {crest(player.name)}
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div className="eyebrow flex items-center gap-2">
+                  <User size={14} />
+                  Player Profile
+                </div>
+                <h1 className="text-balance" style={{ marginBottom: 4 }}>{player.name || 'Player'}</h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="chip chip-accent">Level {player.level}</span>
+                  {player.team?.name ? (
+                    <span className="chip">{player.team.name}</span>
+                  ) : (
+                    <span className="chip">Free agent</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button type="button" className="btn btn-secondary" onClick={() => setEditOpen((open) => !open)}>
+              <Pencil size={15} />
+              {editOpen ? 'Close' : 'Edit Name'}
+            </button>
+          </div>
+        </div>
+
+        {/* ─── Rename ───────────────────────────────────────────────────────── */}
+        {editOpen ? (
+          <div className="glass-panel">
+            <div className="section-head">
+              <span className="section-icon"><Pencil size={18} /></span>
+              <h2>Rename Player</h2>
+            </div>
+            <form onSubmit={submitRename} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <div className="form-group flex-1 mb-0">
+                <label className="form-label" htmlFor="player-name">Player name</label>
+                <input
+                  id="player-name"
+                  type="text"
+                  className="form-input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={100}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </form>
+          </div>
+        ) : null}
+
+        {/* ─── Stats grid + Radar ───────────────────────────────────────────── */}
         <div className="glass-panel">
           <div className="section-head">
-            <span className="section-icon"><Pencil size={18} /></span>
-            <h2>Rename Player</h2>
+            <span className="section-icon"><Zap size={18} /></span>
+            <h2>Attributes</h2>
           </div>
-          {saveError ? <div className="alert alert-error mb-4" role="alert">{saveError}</div> : null}
-          <form onSubmit={submitRename} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <StatCard label="Level" value={player.level} />
+            <StatCard label="Attack" value={effectiveStats.attack ?? 0} sub={baseStats.attack !== effectiveStats.attack ? `base ${baseStats.attack}` : null} />
+            <StatCard label="Defense" value={effectiveStats.defense ?? 0} sub={baseStats.defense !== effectiveStats.defense ? `base ${baseStats.defense}` : null} />
+            <StatCard label="Stamina" value={effectiveStats.stamina ?? 0} sub={baseStats.stamina !== effectiveStats.stamina ? `base ${baseStats.stamina}` : null} />
+          </div>
+
+          {/* Progress bars */}
+          <div className="flex flex-col gap-4 mb-6">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-muted">Energy</span>
+                <span className="font-medium">{energy} / {maxEnergy}</span>
+              </div>
+              <ProgressBar pct={player.energy?.pct ?? 0} variant="energy" />
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-muted">Experience</span>
+                <span className="font-medium">{xpCurrent} / {xpToNextLevel} XP</span>
+              </div>
+              <ProgressBar pct={xpPct} variant="xp" />
+            </div>
+          </div>
+
+          {/* Radar chart — full stat overview */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+            <div className="text-sm font-semibold text-muted mb-2" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 11 }}>
+              Stat Overview
+            </div>
+            <RadarChart base={baseStats} effective={effectiveStats} />
+          </div>
+        </div>
+
+        {/* ─── Training Ground ──────────────────────────────────────────────── */}
+        <div className="glass-panel">
+          <div className="section-head">
+            <span className="section-icon"><Dumbbell size={18} /></span>
+            <h2>Training Ground</h2>
+          </div>
+          <form onSubmit={submitTraining} className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="form-group flex-1 mb-0">
-              <label className="form-label" htmlFor="player-name">Player name</label>
+              <label className="form-label" htmlFor="training-energy">Energy to invest</label>
               <input
-                id="player-name"
-                type="text"
+                id="training-energy"
+                type="number"
                 className="form-input"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={100}
+                min="1"
+                max={maxEnergy}
+                value={trainingEnergy}
+                onChange={(e) => setTrainingEnergy(e.target.value)}
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving…' : 'Save changes'}
+            <button type="submit" className="btn btn-primary" disabled={trainingLoading || energy < 1}>
+              <Dumbbell size={16} />
+              {trainingLoading ? 'Training…' : 'Train'}
             </button>
           </form>
-        </div>
-      ) : null}
-
-      <div className="glass-panel">
-        <div className="section-head">
-          <span className="section-icon"><Zap size={18} /></span>
-          <h2>Attributes</h2>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatCard label="Level" value={player.level} />
-          <StatCard label="Attack" value={effectiveStats.attack ?? baseStats.attack ?? 0} />
-          <StatCard label="Defense" value={effectiveStats.defense ?? baseStats.defense ?? 0} />
-          <StatCard label="Stamina" value={effectiveStats.stamina ?? baseStats.stamina ?? 0} />
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-muted">Energy</span>
-              <span className="font-medium">{energy} / {maxEnergy}</span>
-            </div>
-            <ProgressBar pct={player.energy?.pct ?? 0} variant="energy" />
-          </div>
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-muted">Experience</span>
-              <span className="font-medium">{xpCurrent} / {xpToNextLevel} XP</span>
-            </div>
-            <ProgressBar pct={xpPct} variant="xp" />
-          </div>
+          <p className="text-muted text-sm mt-3">
+            Training converts energy into XP and can trigger level-ups that improve your base stats.
+            {energy < 10 ? ' You are low on energy — rest to recover.' : null}
+          </p>
         </div>
       </div>
-
-      <div className="glass-panel">
-        <div className="section-head">
-          <span className="section-icon"><Dumbbell size={18} /></span>
-          <h2>Training Ground</h2>
-        </div>
-        {trainingError ? <div className="alert alert-error mb-4" role="alert">{trainingError}</div> : null}
-        <form onSubmit={submitTraining} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="form-group flex-1 mb-0">
-            <label className="form-label" htmlFor="training-energy">Energy to spend</label>
-            <input
-              id="training-energy"
-              type="number"
-              className="form-input"
-              min="1"
-              max={maxEnergy}
-              value={trainingEnergy}
-              onChange={(e) => setTrainingEnergy(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-primary" disabled={trainingLoading}>
-            <Dumbbell size={16} />
-            {trainingLoading ? 'Training…' : 'Train'}
-          </button>
-        </form>
-        <p className="text-muted text-sm mt-3">
-          Training converts energy into XP and can trigger level-ups that improve your base stats.
-        </p>
-      </div>
-    </div>
+    </>
   )
 }

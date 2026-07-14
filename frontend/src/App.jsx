@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { SWRConfig } from 'swr'
+import api from './api/client'
 import { ProtectedLayout, PublicOnly } from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -16,9 +17,20 @@ import EquipmentPage from './pages/EquipmentPage'
 import RewardsPage from './pages/RewardsPage'
 import SeasonsPage from './pages/SeasonsPage'
 
+// Global SWR fetcher using the axios client
+const swrFetcher = (url) => api.get(url).then((r) => r.data)
+
 export default function App() {
   return (
-    <SWRConfig value={{ revalidateOnFocus: false, shouldRetryOnError: false, dedupingInterval: 4000, revalidateIfStale: false }}>
+    <SWRConfig
+      value={{
+        fetcher: swrFetcher,
+        revalidateOnFocus: false,
+        shouldRetryOnError: false,
+        dedupingInterval: 4000,
+        revalidateIfStale: false,
+      }}
+    >
       <BrowserRouter>
         <Routes>
           <Route

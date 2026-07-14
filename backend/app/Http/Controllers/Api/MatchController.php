@@ -38,7 +38,12 @@ class MatchController extends Controller
 
     public function show(FootballMatch $match): JsonResponse
     {
-        $match->load(['homeTeam', 'awayTeam', 'league', 'gamePlays']);
+        $match->load([
+            'homeTeam',
+            'awayTeam',
+            'league',
+            'gamePlays.contributions.player'
+        ]);
 
         return $this->successResponse(MatchResource::make($match));
     }
