@@ -108,11 +108,14 @@ export default function TeamDetailPage() {
               <div key={member.id} className="data-row">
                 <div className="data-main">
                   <span className="team-crest" style={{ width: 34, height: 34, fontSize: 13 }}>
-                    {crest(member.user?.name || 'P')}
+                    {crest(member.name || 'P')}
                   </span>
-                  <span className="data-name">{member.user?.name || 'Player'}</span>
+                  <span className="data-name">{member.name || 'Player'}</span>
                 </div>
-                <span className="chip">Level {member.level}</span>
+                <div className="flex items-center gap-2">
+                  <span className="chip chip-accent">⚽ {member.goals_scored ?? 0}</span>
+                  <span className="chip">Level {member.level}</span>
+                </div>
               </div>
             ))}
           </div>

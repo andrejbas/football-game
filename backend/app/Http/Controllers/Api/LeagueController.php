@@ -7,6 +7,7 @@ use App\Http\Resources\LeagueResource;
 use App\Http\Resources\MatchResource;
 use App\Http\Resources\TeamResource;
 use App\Models\League;
+use App\Models\Player;
 use App\Services\LeagueService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
@@ -38,6 +39,28 @@ class LeagueController extends Controller
         return $this->successResponse([
             'league'    => LeagueResource::make($league),
             'standings' => TeamResource::collection($standings),
+        ]);
+    }
+
+    public function topScorers(League $league): JsonResponse
+    {
+        $players = Player::whereHas('team', fn ($q) => $q->where('league_id', $league->id))
+            ->with('team')
+            ->orderByDesc('goals_scored')
+            ->take(10)
+            ->get();
+
+        return $this->successResponse([
+            'league'      => LeagueResource::make($league),
+            'top_scorers' => $players->map(fn (Player $player) => [
+                'id'           => $player->id,
+                'name'         => $player->name,
+                'goals_scored' => $player->goals_scored,
+                'team'         => $player->team ? [
+                    'id'   => $player->team->id,
+                    'name' => $player->team->name,
+                ] : null,
+            ]),
         ]);
     }
 

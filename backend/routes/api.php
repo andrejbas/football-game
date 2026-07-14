@@ -43,6 +43,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/energy',  [PlayerController::class, 'energyStatus']);
     });
 
+    // Any player, by ID (public profile view)
+    Route::get('/players/{player}', [PlayerController::class, 'showPlayer']);
+
+    // Any player, by ID (public profile view)
+    Route::get('/players/{player}', [PlayerController::class, 'showPlayer']);
+
     // Teams
     Route::apiResource('teams', TeamController::class);
     Route::prefix('teams/{team}')->group(function () {
@@ -66,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{league}',               [LeagueController::class, 'show']);
         Route::get('/{league}/standings',     [LeagueController::class, 'standings']);
         Route::get('/{league}/schedule',      [LeagueController::class, 'schedule']);
+        Route::get('/{league}/top-scorers',   [LeagueController::class, 'topScorers']);
     });
 
     // Matches

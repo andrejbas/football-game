@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Player\TrainPlayerRequest;
 use App\Http\Requests\Player\UpdatePlayerRequest;
 use App\Http\Resources\PlayerResource;
+use App\Models\Player;
 use App\Services\PlayerService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,16 @@ class PlayerController extends Controller
             ->player()
             ->with(['team', 'equippedItems'])
             ->firstOrFail();
+
+        return $this->successResponse(PlayerResource::make($player));
+    }
+
+    /**
+     * Public profile view for any player by ID, e.g. GET /players/{player}.
+     */
+    public function showPlayer(Player $player): JsonResponse
+    {
+        $player->load(['team', 'equippedItems']);
 
         return $this->successResponse(PlayerResource::make($player));
     }

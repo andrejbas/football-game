@@ -27,6 +27,7 @@ class Player extends Model
         'energy_current',
         'energy_max',
         'energy_regen_rate',
+        'goals_scored',
     ];
 
     protected function casts(): array
@@ -43,6 +44,7 @@ class Player extends Model
             'energy_current'   => 'integer',
             'energy_max'       => 'integer',
             'energy_regen_rate'=> 'integer',
+            'goals_scored'     => 'integer',
         ];
     }
 
@@ -134,5 +136,10 @@ class Player extends Model
     public function refillEnergy(): void
     {
         $this->update(['energy_current' => $this->energy_max]);
+    }
+
+    public function recordGoal(int $count = 1): void
+    {
+        $this->increment('goals_scored', $count);
     }
 }

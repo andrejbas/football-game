@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import PlayerPage from './pages/PlayerPage'
+import PlayerDetailPage from './pages/PlayerDetailPage'
 import TeamsPage from './pages/TeamsPage'
 import TeamDetailPage from './pages/TeamDetailPage'
 import LeaguesPage from './pages/LeaguesPage'
@@ -17,7 +18,7 @@ import SeasonsPage from './pages/SeasonsPage'
 
 export default function App() {
   return (
-    <SWRConfig value={{ revalidateOnFocus: false, shouldRetryOnError: false }}>
+    <SWRConfig value={{ revalidateOnFocus: false, shouldRetryOnError: false, dedupingInterval: 4000, revalidateIfStale: false }}>
       <BrowserRouter>
         <Routes>
           <Route
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/equipment" element={<EquipmentPage />} />
             <Route path="/rewards" element={<RewardsPage />} />
             <Route path="/seasons" element={<SeasonsPage />} />
+            <Route path="/players/:id" element={<PlayerDetailPage />} />
           </Route>
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

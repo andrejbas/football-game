@@ -9,6 +9,8 @@ export const leaguesApi = {
   standings: (id) => api.get(`/leagues/${id}/standings`).then((r) => r.data.data),
   // { league, schedule: [{ game_day, matches: [...] }] }
   schedule: (id) => api.get(`/leagues/${id}/schedule`).then((r) => r.data.data),
+  // { league, top_scorers: [...] }
+  topScorers: (id) => api.get(`/leagues/${id}/top-scorers`).then((r) => r.data.data),
 
   // Admin lifecycle controls
   adminStart: (id) => api.post(`/admin/leagues/${id}/start`).then((r) => r.data.data),
